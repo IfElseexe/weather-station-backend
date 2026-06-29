@@ -84,4 +84,29 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// GET export — returns data for a time range
+router.get('/export', async (req, res) => {
+  try {
+    const { range, start, end } = req.query;
+    let query = {};
+    const now = new Date();
+
+    if (range === '24h') {
+      query.timestamp = { $gte: new Date(now - 24 * 60 * 60 * 1000) };
+    } else if (range === '7d') {
+      query.timestamp = { $gte: new Date(now - 7 * 24 * 60 * 60 * 1000) };
+    } else if (range === '30d') {
+      query.timestamp = { $gte: new Date(now - 30 * 24 * 60 * 60 * 1000) };
+    } else if (range === 'custom' && start && end) {
+      query.timestamp = { $gte: new Date(start), $lte: new Date(end) };
+    }
+    // if range === 'all' or nothing, query stays empty (returns everything)
+
+    const readings = await Weather.find(query).sort({ timestamp: -1 }).limit(10000);
+    res.json({ count: readings.length, data: readings });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
